@@ -1,22 +1,41 @@
 import express from "express";
+import path from "path";
+import fs from "fs";
 import Parser from "rss-parser";
 
+const __dirname = path.resolve();
 const app = express();
-const parser = new Parser();
+const publicDir = path.join(__dirname, "public");
+const indexPath = path.join(publicDir, "index.html");
+const rssParser = new Parser();
 
-// Вставь сюда ID публичной группы ВК
-const groupId = "39760212";
+// Проверка папки и файла
+if (!fs.existsSync(publicDir)) console.error("Папка public не найдена:", publicDir);
+if (!fs.existsSync(indexPath)) console.error("Файл index.html не найден:", indexPath);
 
-// Генерация RSS через RSSHub или сторонний RSS генератор (тут будет рабочий URL)
-const rssUrl = `https://rss.stand-in-service.com/vk/group/${groupId}`; // заменим позже на рабочий
+app.use(express.static(publicDir));
 
-app.get("/rss", async (req, res) => {
-  try {
-    const feed = await parser.parseURL(rssUrl);
-    res.json(feed.items || []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// RSS URL вашей группы
+const rssUrl = "[https://rsshub.app/vk/group/39760212](https://rsshub.app/vk/group/39760212)";
+
+app.get("/api/posts", async (req, res) => {
+try {
+const feed = await rssParser.parseURL(rssUrl);
+const items = feed.items.slice(0, 10).map(item => ({
+title: item.title,
+link: item.link,
+pubDate: item.pubDate,
+content: item.contentSnippet
+}));
+res.json(items);
+} catch (err) {
+res.status(500).json({ error: err.message });
+}
+});
+
+// Любые другие маршруты → index.html
+app.get("*", (req, res) => {
+res.sendFile(indexPath);
 });
 
 const port = process.env.PORT || 3000;
