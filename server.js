@@ -1,42 +1,48 @@
 import express from "express";
-import path from "path";
-import fs from "fs";
-import Parser from "rss-parser";
+import fetch from "node-fetch";
 
-const __dirname = path.resolve();
 const app = express();
-const publicDir = path.join(__dirname, "public");
-const indexPath = path.join(publicDir, "index.html");
-const rssParser = new Parser();
 
-// Проверка папки и файла
-if (!fs.existsSync(publicDir)) console.error("Папка public не найдена:", publicDir);
-if (!fs.existsSync(indexPath)) console.error("Файл index.html не найден:", indexPath);
-
-app.use(express.static(publicDir));
-
-// RSS URL вашей группы
-const rssUrl = "[https://rsshub.app/vk/group/39760212](https://rsshub.app/vk/group/39760212)";
+const GROUP_ID = 39760212;
+const TOKEN = process.env.VK_TOKEN; // <- сюда Render подставит твой токен
+const API_URL = "https://api.vk.com/method/wall.get";
+const API_VERSION = "5.199";
 
 app.get("/api/posts", async (req, res) => {
-try {
-const feed = await rssParser.parseURL(rssUrl);
-const items = feed.items.slice(0, 10).map(item => ({
-title: item.title,
-link: item.link,
-pubDate: item.pubDate,
-content: item.contentSnippet
-}));
-res.json(items);
-} catch (err) {
-res.status(500).json({ error: err.message });
-}
+  try {
+    const url =
+      `${API_URL}?owner_id=-${GROUP_ID}` +
+      `&count=10` +
+      `&access_token=${TOKEN}` +
+      `&v=${API_VERSION}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(500).json({ error: data.error.error_msg });
+    }
+
+    const items = data.response.items.map(post => ({
+      id: post.id,
+      text: post.text,
+      date: post.date,
+      link: `https://vk.com/wall-${GROUP_ID}_${post.id}`,
+      images: post.attachments
+        ?.filter(a => a.type === "photo")
+        .map(a => a.photo.sizes.pop().url) || []
+    }));
+
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Любые другие маршруты → index.html
-app.get("*", (req, res) => {
-res.sendFile(indexPath);
+// тестовая страница
+app.get("/", (req, res) => {
+  res.send("VK API server is running. Use /api/posts");
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log("Server started on port", port));
