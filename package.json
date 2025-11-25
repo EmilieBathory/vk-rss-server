@@ -1,17 +1,16 @@
 {
-"name": "vk-rss-server",
-"version": "1.0.0",
-"description": "VK Slider Tilda integration через RSS",
-"type": "module",
-"main": "server.js",
-"scripts": {
-"start": "node server.js"
-},
-"engines": {
-"node": ">=18"
-},
-"dependencies": {
-"express": "^4.18.2",
-"rss-parser": "^3.12.0"
-}
+  "name": "vk-simple-api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"
+  }
 }
